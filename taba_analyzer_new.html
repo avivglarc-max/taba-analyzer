@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מנתח תב"ע AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<style>
+:root {
+  --ink:     #0f1923;
+  --paper:   #f4f1eb;
+  --blue:    #1b3f72;
+  --teal:    #1d7874;
+  --amber:   #e8a020;
+  --red:     #c0392b;
+  --green:   #1a7a4a;
+  --muted:   #8a8a8a;
+  --border:  #d6d0c4;
+  --card:    #ffffff;
+  --sidebar: #0f1923;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Heebo', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100vh;
+  display: flex;
+  overflow-x: hidden;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: var(--sidebar);
+  color: #e8e4dc;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar-logo {
+  padding: 28px 24px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.sidebar-logo .icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 6px;
+}
+.sidebar-logo h1 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #fff;
+  line-height: 1.2;
+}
+.sidebar-logo p {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.4);
+  margin-top: 4px;
+  font-weight: 300;
+}
+
+.sidebar-section {
+  padding: 20px 24px 12px;
+}
+.sidebar-section label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 12px;
+}
+.sidebar-input {
+  width: 100%;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: #fff;
+  font-family: 'Heebo', sans-serif;
+  font-size: 0.88rem;
+  margin-bottom: 10px;
+  transition: border-color 0.2s, background 0.2s;
+  direction: rtl;
+}
+.sidebar-input:focus {
+  outline: none;
+  border-color: var(--teal);
+  background: rgba(255,255,255,0.1);
+}
+.sidebar-input::placeholder { color: rgba(255,255,255,0.25); }
+
+.sidebar-select {
+  width: 100%;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: #fff;
+  font-family: 'Heebo', sans-serif;
+  font-size: 0.84rem;
+  margin-bottom: 10px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 12px center;
+}
+.sidebar-select option { background: #1c2836; color: #fff; }
+.sidebar-select:focus { outline: none; border-color: var(--teal); }
+
+.api-key-wrap { position: relative; }
+.api-key-wrap .eye {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  opacity: 0.4;
+  font-size: 0.9rem;
+  user-select: none;
+}
+
+.mix-options { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.mix-opt {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px; padding: 9px 12px;
+  cursor: pointer; transition: all 0.2s;
+  font-size: 0.82rem; color: rgba(255,255,255,0.65);
+}
+.mix-opt:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.mix-opt.active {
+  border-color: var(--teal);
+  background: rgba(29,120,116,0.2);
+  color: #fff;
+}
+.mix-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  flex-shrink: 0;
+}
+.mix-dot.conservative { background: #3498db; }
+.mix-dot.balanced    { background: var(--teal); }
+.mix-dot.aggressive  { background: var(--amber); }
+
+.analyze-btn {
+  margin: 16px 24px 24px;
+  width: calc(100% - 48px);
+  background: linear-gradient(135deg, var(--teal) 0%, #155c59 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 13px;
+  font-family: 'Heebo', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.3px;
+  position: relative;
+  overflow: hidden;
+}
+.analyze-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0);
+  transition: background 0.2s;
+}
+.analyze-btn:hover::after { background: rgba(255,255,255,0.08); }
+.analyze-btn:active { transform: scale(0.98); }
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 16px 24px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.2);
+  line-height: 1.7;
+}
+
+/* ── Main ── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.topbar {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.topbar-crumb {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+.topbar-crumb span { color: var(--ink); font-weight: 700; }
+
+.status-pill {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.75rem; font-weight: 600;
+  padding: 4px 12px; border-radius: 99px;
+  background: #e8f5f0; color: var(--green);
+}
+.status-pill .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.8); }
+}
+
+/* ── Upload Zone ── */
+.content { padding: 28px 32px; flex: 1; }
+
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 14px;
+  padding: 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s;
+  background: rgba(255,255,255,0.6);
+  margin-bottom: 28px;
+  position: relative;
+}
+.upload-zone:hover, .upload-zone.drag {
+  border-color: var(--teal);
+  background: rgba(29,120,116,0.04);
+}
+.upload-zone.has-file {
+  border-color: var(--teal);
+  border-style: solid;
+  background: rgba(29,120,116,0.04);
+}
+.upload-icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 12px;
+}
+.upload-zone h3 {
+  font-size: 1rem; font-weight: 700;
+  margin-bottom: 6px;
+}
+.upload-zone p {
+  font-size: 0.82rem; color: var(--muted);
+}
+.upload-zone input[type=file] {
+  position: absolute; inset: 0;
+  opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.file-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--teal); color: #fff;
+  border-radius: 8px; padding: 6px 14px;
+  font-size: 0.82rem; font-weight: 600; margin-top: 10px;
+}
+
+/* ── KPIs ── */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 28px;
+  animation: fadeUp 0.5s ease both;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.kpi-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 4px; height: 100%;
+  background: var(--accent, var(--teal));
+}
+.kpi-label {
+  font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 8px;
+}
+.kpi-value {
+  font-size: 1.9rem; font-weight: 900;
+  line-height: 1; color: var(--ink);
+  font-family: 'IBM Plex Mono', monospace;
+}
+.kpi-sub {
+  font-size: 0.72rem; color: var(--muted); margin-top: 5px;
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: flex; gap: 0;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 24px;
+}
+.tab-btn {
+  padding: 10px 20px;
+  font-family: 'Heebo', sans-serif;
+  font-size: 0.85rem; font-weight: 600;
+  color: var(--muted);
+  border: none; background: transparent;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.tab-btn:hover { color: var(--ink); }
+.tab-btn.active {
+  color: var(--blue);
+  border-bottom-color: var(--blue);
+}
+
+.tab-content { display: none; animation: fadeIn 0.3s ease; }
+.tab-content.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── Tables ── */
+.tbl-wrap {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.tbl-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem; font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  display: flex; align-items: center; gap: 8px;
+}
+table {
+  width: 100%; border-collapse: collapse;
+  font-size: 0.875rem;
+}
+thead th {
+  background: #f8f7f4;
+  padding: 10px 16px;
+  text-align: right;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+}
+tbody tr { border-bottom: 1px solid rgba(0,0,0,0.04); transition: background 0.15s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: rgba(29,120,116,0.03); }
+tbody td { padding: 12px 16px; }
+.total-row td {
+  background: #0f1923; color: #fff;
+  font-weight: 700;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px; border-radius: 4px;
+  font-size: 0.7rem; font-weight: 700;
+}
+.badge-1 { background: #dbeafe; color: #1e3a8a; }
+.badge-2 { background: #dcfce7; color: #14532d; }
+.badge-3 { background: #fef3c7; color: #713f12; }
+.badge-4 { background: #fce7f3; color: #831843; }
+.badge-5 { background: #ede9fe; color: #4c1d95; }
+
+/* ── Risk Cards ── */
+.risk-list { display: flex; flex-direction: column; gap: 10px; }
+.risk-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px 14px 20px;
+  border-right: 4px solid;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 12px;
+}
+.risk-card.high   { border-right-color: var(--red);   background: #fdf2f2; }
+.risk-card.medium { border-right-color: var(--amber);  background: #fffbf0; }
+.risk-card.low    { border-right-color: var(--green);  background: #f0faf5; }
+
+.risk-icon { font-size: 1.2rem; line-height: 1; padding-top: 2px; }
+.risk-body h4 { font-size: 0.85rem; font-weight: 700; margin-bottom: 4px; }
+.risk-body p  { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+.risk-tag {
+  font-size: 0.65rem; font-weight: 700; padding: 2px 8px;
+  border-radius: 4px; white-space: nowrap;
+}
+.risk-card.high   .risk-tag { background: #fde8e8; color: var(--red); }
+.risk-card.medium .risk-tag { background: #fef3cd; color: #92400e; }
+.risk-card.low    .risk-tag { background: #d1fae5; color: var(--green); }
+
+/* ── Rights Grid ── */
+.rights-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.rights-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.rights-card-head {
+  background: var(--blue);
+  color: #fff;
+  padding: 12px 16px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.rights-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  font-size: 0.83rem;
+}
+.rights-row:last-child { border-bottom: none; }
+.rights-row .key { color: var(--muted); font-weight: 500; }
+.rights-row .val { font-weight: 700; font-family: 'IBM Plex Mono', monospace; font-size: 0.88rem; }
+
+/* ── Summary ── */
+.summary-block {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 22px 24px;
+  margin-bottom: 16px;
+}
+.summary-block h3 {
+  font-size: 0.75rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px;
+  color: var(--muted); margin-bottom: 12px;
+}
+.summary-block p { font-size: 0.9rem; line-height: 1.8; color: #333; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.check-list { list-style: none; }
+.check-list li {
+  font-size: 0.84rem; padding: 5px 0;
+  display: flex; gap: 8px; align-items: baseline;
+}
+.check-list li::before { content: '✓'; font-weight: 900; color: var(--green); }
+.warn-list li::before  { content: '◆'; font-weight: 900; color: var(--amber); }
+
+/* ── Chart wrap ── */
+.charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.chart-wrap {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+.chart-title {
+  font-size: 0.78rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  color: var(--muted); margin-bottom: 14px;
+}
+canvas { max-height: 220px; }
+
+/* ── Progress bar ── */
+.progress-bar {
+  height: 6px; background: #e9ecef; border-radius: 3px; overflow: hidden;
+  margin-top: 6px;
+}
+.progress-fill {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, var(--teal), #2ab5af);
+  transition: width 1s ease;
+}
+
+/* ── Download btn ── */
+.dl-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--ink);
+  border-radius: 12px;
+  padding: 16px 22px;
+  margin-top: 8px;
+}
+.dl-bar p { color: rgba(255,255,255,0.6); font-size: 0.82rem; }
+.dl-bar strong { color: #fff; display: block; font-size: 0.95rem; }
+.dl-btn {
+  background: var(--teal);
+  color: #fff; border: none;
+  border-radius: 8px; padding: 10px 22px;
+  font-family: 'Heebo', sans-serif;
+  font-size: 0.88rem; font-weight: 700;
+  cursor: pointer; transition: all 0.2s;
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-block;
+}
+.dl-btn:hover { background: #155c59; transform: translateY(-1px); }
+
+/* ── Loading overlay ── */
+.loading-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(15,25,35,0.75);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 20px;
+}
+.loading-overlay.show { display: flex; }
+.loading-box {
+  background: #fff;
+  border-radius: 16px;
+  padding: 36px 48px;
+  text-align: center;
+  min-width: 320px;
+}
+.spinner {
+  width: 48px; height: 48px;
+  border: 4px solid #e9ecef;
+  border-top-color: var(--teal);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-box h3 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+.loading-box p  { font-size: 0.82rem; color: var(--muted); }
+.loading-steps { list-style: none; margin-top: 16px; text-align: right; }
+.loading-steps li {
+  font-size: 0.78rem; padding: 3px 0;
+  color: var(--muted); display: flex; align-items: center; gap: 8px;
+}
+.loading-steps li.done  { color: var(--green); }
+.loading-steps li.active { color: var(--ink); font-weight: 600; }
+.step-icon { width: 16px; flex-shrink: 0; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .kpi-row { grid-template-columns: repeat(2,1fr); }
+  .rights-grid { grid-template-columns: 1fr; }
+  .charts-row { grid-template-columns: 1fr; }
+  .two-col { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span class="icon">🏗️</span>
+    <h1>מנתח תב"ע AI</h1>
+    <p>ניתוח זכויות בנייה · תמהיל דירות</p>
+  </div>
+
+  <div class="sidebar-section">
+    <label>🔑 API Key</label>
+    <div class="api-key-wrap">
+      <input class="sidebar-input" type="password" id="apiKey"
+             placeholder="sk-ant-api03-..." value="sk-ant-demo-key">
+      <span class="eye" onclick="toggleKey()">👁</span>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <label>📋 פרטי פרויקט</label>
+    <input class="sidebar-input" type="text" placeholder="שם הפרויקט" value="מגדל הים – חיפה">
+    <input class="sidebar-input" type="text" placeholder="עיר / ישוב" value="חיפה">
+    <input class="sidebar-input" type="number" placeholder="שטח מגרש ידוע מ&quot;ר" value="3200">
+  </div>
+
+  <div class="sidebar-section">
+    <label>🎯 העדפת תמהיל</label>
+    <div class="mix-options">
+      <div class="mix-opt" onclick="selectMix(this,'conservative')">
+        <span class="mix-dot conservative"></span>
+        שמרני – דירות גדולות
+      </div>
+      <div class="mix-opt active" onclick="selectMix(this,'balanced')">
+        <span class="mix-dot balanced"></span>
+        מאוזן – תמהיל מגוון
+      </div>
+      <div class="mix-opt" onclick="selectMix(this,'aggressive')">
+        <span class="mix-dot aggressive"></span>
+        אגרסיבי – מקסימום יח"ד
+      </div>
+    </div>
+  </div>
+
+  <button class="analyze-btn" onclick="runAnalysis()">
+    🔍 &nbsp;נתח מסמך
+  </button>
+
+  <div class="sidebar-footer">
+    מופעל על ידי Claude Sonnet 4<br>
+    PyMuPDF · Streamlit · openpyxl<br>
+    <span style="opacity:0.5">v1.0 · Aviv Archidesign</span>
+  </div>
+</aside>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<main class="main">
+
+  <div class="topbar">
+    <div class="topbar-crumb">
+      ניתוח תב"ע / <span>מגדל הים – חיפה</span>
+    </div>
+    <div style="display:flex; gap:12px; align-items:center;">
+      <div class="status-pill">
+        <span class="dot"></span>
+        Claude מחובר
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- Upload -->
+    <div class="upload-zone has-file" id="dropZone"
+         ondragover="event.preventDefault(); this.classList.add('drag')"
+         ondragleave="this.classList.remove('drag')"
+         ondrop="handleDrop(event)">
+      <input type="file" accept=".pdf" onchange="handleFile(this)">
+      <span class="upload-icon">📄</span>
+      <h3>העלאת מסמך תב"ע</h3>
+      <p>גרור PDF לכאן · PDF טקסטואלי בלבד · עד 50MB</p>
+      <div class="file-badge" id="fileBadge">
+        📄 &nbsp;תוכנית_מגדל_הים_HF2024.pdf &nbsp;·&nbsp; 4.2 MB &nbsp;·&nbsp; 38 עמודים
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-row" id="kpiRow">
+      <div class="kpi-card" style="--accent:#1d7874">
+        <div class="kpi-label">יחידות דיור</div>
+        <div class="kpi-value">84</div>
+        <div class="kpi-sub">מתמהיל מאוזן</div>
+      </div>
+      <div class="kpi-card" style="--accent:#1b3f72">
+        <div class="kpi-label">שטח עיקרי מ"ר</div>
+        <div class="kpi-value">7,840</div>
+        <div class="kpi-sub">מתוך 8,320 מותר</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:94%"></div></div>
+      </div>
+      <div class="kpi-card" style="--accent:#e8a020">
+        <div class="kpi-label">ניצול זכויות</div>
+        <div class="kpi-value">94%</div>
+        <div class="kpi-sub">אחוזי בנייה 260%</div>
+      </div>
+      <div class="kpi-card" style="--accent:#1a7a4a">
+        <div class="kpi-label">הכנסה משוערת</div>
+        <div class="kpi-value">₪186M</div>
+        <div class="kpi-sub">הנחת מחיר 2.2M ליח"ד</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('mix', this)">🏠 תמהיל דירות</button>
+      <button class="tab-btn" onclick="switchTab('rights', this)">📐 זכויות בנייה</button>
+      <button class="tab-btn" onclick="switchTab('risks', this)">⚠️ סיכוני תכנון</button>
+      <button class="tab-btn" onclick="switchTab('summary', this)">📝 סיכום מנהלים</button>
+    </div>
+
+    <!-- ── TAB: תמהיל ── -->
+    <div class="tab-content active" id="tab-mix">
+      <div class="charts-row">
+        <div class="chart-wrap">
+          <div class="chart-title">התפלגות יחידות לפי סוג</div>
+          <canvas id="pieChart"></canvas>
+        </div>
+        <div class="chart-wrap">
+          <div class="chart-title">שטח מנוצל לפי סוג דירה (מ"ר)</div>
+          <canvas id="barChart"></canvas>
+        </div>
+      </div>
+
+      <div class="tbl-wrap">
+        <div class="tbl-header">🏠 תמהיל דירות מוצע</div>
+        <table>
+          <thead>
+            <tr>
+              <th>סוג דירה</th>
+              <th>שטח ממוצע מ"ר</th>
+              <th>כמות יחידות</th>
+              <th>% מהתמהיל</th>
+              <th>שטח כולל מ"ר</th>
+              <th>הערה</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge badge-1">2 חדרים</span></td>
+              <td>58</td><td>14</td><td>16.7%</td><td>812</td>
+              <td>דיור בר-השגה</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-2">3 חדרים</span></td>
+              <td>82</td><td>28</td><td>33.3%</td><td>2,296</td>
+              <td>עיקר המכירות</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-3">4 חדרים</span></td>
+              <td>108</td><td>28</td><td>33.3%</td><td>3,024</td>
+              <td>תמהיל מרכזי</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-4">5 חדרים</span></td>
+              <td>138</td><td>10</td><td>11.9%</td><td>1,380</td>
+              <td>פנטהאוז קומות עליונות</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-5">גן / דופלקס</span></td>
+              <td>160</td><td>4</td><td>4.8%</td><td>640</td>
+              <td>קומת קרקע</td>
+            </tr>
+            <tr class="total-row">
+              <td>סה"כ</td><td>—</td>
+              <td>84</td><td>100%</td><td>8,152</td><td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- אזהרת חריגה -->
+      <div style="background:#fff8e1; border:1px solid #f0c040; border-right:4px solid #e8a020;
+                  border-radius:10px; padding:12px 16px; font-size:0.82rem; margin-bottom:16px;
+                  display:flex; align-items:center; gap:10px;">
+        <span style="font-size:1.1rem;">⚠️</span>
+        <span><strong>בדיקת עקביות:</strong> שטח כולל של התמהיל (8,152 מ"ר) מנצל 97.9% מהשטח העיקרי המותר (8,320 מ"ר) – תקין.</span>
+      </div>
+    </div>
+
+    <!-- ── TAB: זכויות ── -->
+    <div class="tab-content" id="tab-rights">
+      <div class="rights-grid">
+        <div class="rights-card">
+          <div class="rights-card-head">📐 זכויות בנייה</div>
+          <div class="rights-row"><span class="key">שטח מגרש</span><span class="val">3,200 מ"ר</span></div>
+          <div class="rights-row"><span class="key">אחוזי בנייה מותרים</span><span class="val">260%</span></div>
+          <div class="rights-row"><span class="key">שטח כולל מותר</span><span class="val">10,400 מ"ר</span></div>
+          <div class="rights-row"><span class="key">שטח עיקרי מותר</span><span class="val">8,320 מ"ר</span></div>
+          <div class="rights-row"><span class="key">שטח שירות מותר</span><span class="val">2,080 מ"ר</span></div>
+          <div class="rights-row"><span class="key">מספר קומות מקסימלי</span><span class="val">18 קומות</span></div>
+          <div class="rights-row"><span class="key">גובה מקסימלי</span><span class="val">54 מ'</span></div>
+          <div class="rights-row"><span class="key">אחוז כיסוי מגרש</span><span class="val">40%</span></div>
+        </div>
+        <div class="rights-card">
+          <div class="rights-card-head">📏 קווי בניין</div>
+          <div class="rights-row"><span class="key">קו בניין קדמי</span><span class="val">5 מ'</span></div>
+          <div class="rights-row"><span class="key">קו בניין צדדי</span><span class="val">3 מ'</span></div>
+          <div class="rights-row"><span class="key">קו בניין אחורי</span><span class="val">6 מ'</span></div>
+          <div class="rights-card-head" style="background:var(--teal); margin-top:1px;">🅿️ חנייה</div>
+          <div class="rights-row"><span class="key">חניות למגורים</span><span class="val">1.5 ליח"ד</span></div>
+          <div class="rights-row"><span class="key">סה"כ חניות נדרשות</span><span class="val">126</span></div>
+          <div class="rights-row"><span class="key">פתרון מוצע</span><span class="val">מרתף 2 קומות</span></div>
+        </div>
+      </div>
+
+      <div class="tbl-wrap">
+        <div class="tbl-header">🎁 הקלות ובונוסים מזוהים</div>
+        <table>
+          <thead>
+            <tr><th>סוג</th><th>תיאור</th><th>תוספת זכויות מ"ר</th><th>תנאים</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge badge-2">בונוס ירוק</span></td>
+              <td>בנייה ירוקה תקן ישראלי 5281</td>
+              <td>+480 מ"ר (6%)</td>
+              <td>אישור יועץ ירוק</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-1">הקלת גובה</span></td>
+              <td>הקלה עד 10% מעל גובה מותר</td>
+              <td>+2 קומות</td>
+              <td>דיון וועדה מקומית</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-3">דיור בר-השגה</span></td>
+              <td>20% יח"ד לדיור בר-השגה</td>
+              <td>+200 מ"ר</td>
+              <td>הסכם עם הרשות</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tbl-wrap">
+        <div class="tbl-header">🏗️ שימושים מותרים</div>
+        <table>
+          <thead><tr><th>שימוש</th><th>סטטוס</th><th>הערה</th></tr></thead>
+          <tbody>
+            <tr><td>מגורים</td><td>✅ מותר</td><td>שימוש עיקרי</td></tr>
+            <tr><td>מסחר קמעונאי</td><td>✅ מותר</td><td>קומת קרקע עד 15% מהשטח</td></tr>
+            <tr><td>משרדים</td><td>⚠️ מוגבל</td><td>עד 500 מ"ר בלבד</td></tr>
+            <tr><td>מלאכה</td><td>❌ אסור</td><td>—</td></tr>
+            <tr><td>מוסדות ציבור</td><td>✅ מותר</td><td>בתיאום עם עיריית חיפה</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── TAB: סיכוני תכנון ── -->
+    <div class="tab-content" id="tab-risks">
+      <div class="risk-list">
+        <div class="risk-card high">
+          <span class="risk-icon">🔴</span>
+          <div class="risk-body">
+            <h4>חריגת גובה – דורשת אישור ועדה</h4>
+            <p>סעיף 5.3.א מציין שגובה של מעל 50 מ' מחייב דיון בועדת ערר מחוזית. פרויקט בגובה 54 מ' חורג ודורש הקלה פורמלית. תהליך זה עלול להימשך 12-18 חודשים.</p>
+          </div>
+          <span class="risk-tag">גבוה</span>
+        </div>
+        <div class="risk-card medium">
+          <span class="risk-icon">🟡</span>
+          <div class="risk-body">
+            <h4>הגדרת "שטח שירות" עמומה</h4>
+            <p>סעיף 8.1 אינו מגדיר במפורש מה נכלל בשטח שירות – האם ממ"ד, מרפסות ולובי. יש לבקש פרשנות בכתב מהמהנדס העירוני.</p>
+          </div>
+          <span class="risk-tag">בינוני</span>
+        </div>
+        <div class="risk-card medium">
+          <span class="risk-icon">🟡</span>
+          <div class="risk-body">
+            <h4>דרישת חנייה גבוהה ביחס לשטח מרתף</h4>
+            <p>126 חניות מחייבות מרתף של כ-3,780 מ"ר (30 מ"ר לחניה). בהינתן כיסוי מגרש של 40% ושטח מגרש 3,200 מ"ר – נדרש מרתף בן 3 קומות, לא 2. יש לבדוק כדאיות.</p>
+          </div>
+          <span class="risk-tag">בינוני</span>
+        </div>
+        <div class="risk-card low">
+          <span class="risk-icon">🟢</span>
+          <div class="risk-body">
+            <h4>בונוס ירוק – תנאים ברורים</h4>
+            <p>הבונוס הירוק מוגדר היטב בסעיף 12.4 ותנאיו ניתנים לעמידה. יש לשכור יועץ ירוק מוסמך בשלב התכנון המוקדם.</p>
+          </div>
+          <span class="risk-tag">נמוך</span>
+        </div>
+        <div class="risk-card low">
+          <span class="risk-icon">🟢</span>
+          <div class="risk-body">
+            <h4>קווי בניין – אין חריגות</h4>
+            <p>כל קווי הבניין ברורים ומוגדרים. התוכנית עומדת בדרישות ללא צורך בהקלות בתחום זה.</p>
+          </div>
+          <span class="risk-tag">נמוך</span>
+        </div>
+      </div>
+
+      <div style="margin-top:20px; background:var(--card); border:1px solid var(--border);
+                  border-radius:12px; padding:18px 20px;">
+        <div class="tbl-header" style="padding:0 0 12px 0; border-bottom:1px solid var(--border);">
+          🎯 רמת ביטחון בנתונים
+        </div>
+        <div style="margin-top:14px; display:flex; align-items:center; gap:12px;">
+          <div style="font-size:0.82rem; color:var(--muted);">רמה כללית:</div>
+          <span class="badge badge-3" style="font-size:0.78rem; padding:4px 12px;">בינוני–גבוה</span>
+        </div>
+        <p style="font-size:0.82rem; color:var(--muted); margin-top:10px; line-height:1.7;">
+          הנתונים נחלצו ממסמך בן 38 עמודים. שדות עם ביטחון נמוך: גובה מקסימלי (לא מפורש בסעיף ראשי),
+          דרישת חנייה למסחר (לא צוינה). מומלץ לאמת מול המהנדס העירוני.
+        </p>
+      </div>
+    </div>
+
+    <!-- ── TAB: סיכום ── -->
+    <div class="tab-content" id="tab-summary">
+      <div class="summary-block">
+        <h3>📋 סיכום מנהלים</h3>
+        <p>
+          מסמך התב"ע מאפשר פרויקט מגורים משמעותי במגרש בשטח 3,200 מ"ר בחיפה,
+          עם פוטנציאל של עד 84 יחידות דיור בתמהיל מאוזן. זכויות הבנייה גבוהות יחסית (260%)
+          עם אפשרות להרחבה עד 280% באמצעות בונוס ירוק. האתגר המרכזי הוא גובה הבניין
+          (54 מ') החורג מהגבול האוטומטי ומחייב הקלה פורמלית. הפרויקט בעל כדאיות
+          כלכלית גבוהה עם הכנסה משוערת של כ-186 מיליון ₪.
+        </p>
+      </div>
+
+      <div class="summary-block" style="background:linear-gradient(135deg,#f0faf5,#e8f8f3); border-color:#a8dfc8;">
+        <h3>✅ המלצה עיקרית</h3>
+        <p style="font-weight:600; color:var(--green);">
+          להתקדם עם הפרויקט תוך טיפול מקביל בהקלת הגובה. לא לחכות לאישור ההקלה לפני
+          תחילת הכנת התוכניות – ניתן להתקדם במקביל ולחסוך 6-8 חודשים.
+        </p>
+      </div>
+
+      <div class="two-col">
+        <div class="summary-block">
+          <h3>💪 נקודות חוזק</h3>
+          <ul class="check-list">
+            <li>אחוזי בנייה גבוהים (260%) – ניצול מקסימלי של הקרקע</li>
+            <li>שימושי מסחר בקומת קרקע – הכנסה נוספת מקביעות</li>
+            <li>בונוס ירוק פשוט לביצוע – תוספת 6% זכויות</li>
+            <li>קווי בניין נוחים – גמישות תכנונית גבוהה</li>
+            <li>התב"ע עדכנית (2021) – סיכון נמוך לשינוי</li>
+          </ul>
+        </div>
+        <div class="summary-block">
+          <h3>🚧 אתגרים</h3>
+          <ul class="check-list warn-list">
+            <li>הקלת גובה – תהליך בירוקרטי של 12-18 חודשים</li>
+            <li>דרישת חנייה גבוהה – עלות מרתף משמעותית</li>
+            <li>הגדרות שטח שירות עמומות – דורש הבהרה</li>
+            <li>20% דיור בר-השגה – מפחית רווחיות</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="summary-block">
+        <h3>🗺️ שלבים מומלצים</h3>
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:4px;">
+          <div style="display:flex; gap:12px; align-items:center;">
+            <span style="background:var(--blue);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;">1</span>
+            <span style="font-size:0.88rem;">בקשת פרשנות בכתב מהמהנדס העירוני לעניין שטחי שירות (שבוע 1-2)</span>
+          </div>
+          <div style="display:flex; gap:12px; align-items:center;">
+            <span style="background:var(--blue);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;">2</span>
+            <span style="font-size:0.88rem;">שכירת יועץ ירוק מוסמך להגדרת מסלול הבונוס הירוק (שבוע 2-3)</span>
+          </div>
+          <div style="display:flex; gap:12px; align-items:center;">
+            <span style="background:var(--teal);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;">3</span>
+            <span style="font-size:0.88rem;">הגשת בקשה להקלת גובה לועדה המקומית (שבוע 4)</span>
+          </div>
+          <div style="display:flex; gap:12px; align-items:center;">
+            <span style="background:var(--teal);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;">4</span>
+            <span style="font-size:0.88rem;">התקדמות במקביל עם תכנון אדריכלי + חישוב מרתף חנייה (שבוע 3-12)</span>
+          </div>
+          <div style="display:flex; gap:12px; align-items:center;">
+            <span style="background:var(--amber);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;">5</span>
+            <span style="font-size:0.88rem;">הגשת בקשה להיתר בנייה עם קבלת אישור ההקלה</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Download -->
+    <div class="dl-bar">
+      <div>
+        <strong>⬇️ הורד דוח Excel מלא</strong>
+        <p>4 גיליונות: סיכום מנהלים · תמהיל דירות · זכויות בנייה · סיכוני תכנון</p>
+      </div>
+      <a class="dl-btn" href="#" onclick="simulateDownload(event)">
+        הורד Excel ↓
+      </a>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <h3>מנתח את המסמך...</h3>
+    <p>Claude מעבד את תוכן התב"ע</p>
+    <ul class="loading-steps" id="loadingSteps">
+      <li class="done" id="step1"><span class="step-icon">✓</span> חילוץ טקסט מה-PDF</li>
+      <li class="active" id="step2"><span class="step-icon">⟳</span> ניתוח זכויות בנייה</li>
+      <li id="step3"><span class="step-icon">◦</span> בניית תמהיל דירות</li>
+      <li id="step4"><span class="step-icon">◦</span> זיהוי סיכוני תכנון</li>
+      <li id="step5"><span class="step-icon">◦</span> בדיקת עקביות מתמטית</li>
+    </ul>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ── Global state ──
+let pieChart = null, barChart = null;
+let uploadedFile = null;
+let currentAnalysis = null;
+
+// ── Init Charts with demo data ──
+function initCharts(data) {
+  const COLORS = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444'];
+  const labels = data.map(r => r.סוג_דירה || r['סוג דירה'] || '');
+  const units  = data.map(r => Number(r.כמות_יחידות || r['כמות יחידות'] || 0));
+  const areas  = data.map(r => Number(r.שטח_כולל   || r['שטח כולל']   || 0));
+
+  if (pieChart) pieChart.destroy();
+  const pieCtx = document.getElementById('pieChart').getContext('2d');
+  pieChart = new Chart(pieCtx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data: units, backgroundColor: COLORS, borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom', labels: { font: { family:'Heebo', size:11 }, padding:12 } } },
+      cutout: '62%'
+    }
+  });
+
+  if (barChart) barChart.destroy();
+  const barCtx = document.getElementById('barChart').getContext('2d');
+  barChart = new Chart(barCtx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'שטח כולל מ"ר',
+        data: areas,
+        backgroundColor: COLORS.map(c => c + '30'),
+        borderColor: COLORS,
+        borderWidth: 2, borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { family:'Heebo', size:10 } } },
+        x: { grid: { display: false }, ticks: { font: { family:'Heebo', size:10 } } }
+      }
+    }
+  });
+}
+
+// ── Init with demo data on load ──
+window.addEventListener('DOMContentLoaded', () => {
+  initCharts([
+    { סוג_דירה:'2 חדרים', כמות_יחידות:14, שטח_כולל:812  },
+    { סוג_דירה:'3 חדרים', כמות_יחידות:28, שטח_כולל:2296 },
+    { סוג_דירה:'4 חדרים', כמות_יחידות:28, שטח_כולל:3024 },
+    { סוג_דירה:'5 חדרים', כמות_יחידות:10, שטח_כולל:1380 },
+    { סוג_דירה:'גן/דופלקס', כמות_יחידות:4, שטח_כולל:640 }
+  ]);
+});
+
+// ── Tabs ──
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── Mix select ──
+let selectedMix = 'מאוזן';
+function selectMix(el, type) {
+  document.querySelectorAll('.mix-opt').forEach(m => m.classList.remove('active'));
+  el.classList.add('active');
+  selectedMix = el.textContent.trim();
+}
+
+// ── API Key toggle ──
+function toggleKey() {
+  const inp = document.getElementById('apiKey');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+// ── File handling ──
+function handleFile(input) {
+  if (input.files && input.files[0]) {
+    uploadedFile = input.files[0];
+    document.getElementById('fileBadge').textContent =
+      `📄  ${uploadedFile.name}  ·  ${(uploadedFile.size/1024/1024).toFixed(1)} MB`;
+    document.getElementById('dropZone').classList.add('has-file');
+  }
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type === 'application/pdf') {
+    uploadedFile = f;
+    document.getElementById('fileBadge').textContent =
+      `📄  ${f.name}  ·  ${(f.size/1024/1024).toFixed(1)} MB`;
+    document.getElementById('dropZone').classList.add('has-file');
+  }
+}
+
+// ── Step progress ──
+function setStep(i) {
+  const steps = ['step1','step2','step3','step4','step5'];
+  steps.forEach((s, idx) => {
+    const el = document.getElementById(s);
+    const icon = el.querySelector('.step-icon');
+    if (idx < i) { el.className = 'done';   icon.textContent = '✓'; }
+    else if (idx === i) { el.className = 'active'; icon.textContent = '⟳'; }
+    else { el.className = ''; icon.textContent = '◦'; }
+  });
+}
+
+// ── Read PDF as base64 ──
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+// ── Main analysis ──
+async function runAnalysis() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if (!apiKey || apiKey === 'sk-ant-demo-key') {
+    alert('יש להזין Anthropic API Key אמיתי בסרגל הצד');
+    return;
+  }
+  if (!uploadedFile) {
+    alert('יש להעלות קובץ PDF תחילה');
+    return;
+  }
+
+  const overlay = document.getElementById('loadingOverlay');
+  overlay.classList.add('show');
+  setStep(0);
+
+  try {
+    // שלב 1: המרת PDF לbase64
+    setStep(0);
+    const pdfB64 = await fileToBase64(uploadedFile);
+    const projectName = document.querySelector('.sidebar-input[placeholder="שם הפרויקט"]').value || uploadedFile.name;
+    const city = document.querySelector('.sidebar-input[placeholder="עיר / ישוב"]').value || 'לא צוינה';
+    const plotArea = document.querySelector('.sidebar-input[type="number"]').value || '0';
+
+    // שלב 2: ניתוח זכויות בנייה
+    setStep(1);
+
+    const prompt = `אתה מומחה לניתוח תב"ע ותכנון ובנייה בישראל.
+נתח את מסמך התב"ע הזה והחזר JSON בלבד (ללא טקסט נוסף, ללא backticks).
+
+פרטי הפרויקט:
+- שם: ${projectName}
+- עיר: ${city}
+- העדפת תמהיל: ${selectedMix}
+- שטח מגרש ידוע: ${plotArea} מ"ר (0 = לא ידוע)
+
+החזר JSON עם המבנה הבא בדיוק:
+{
+  "kpi": {
+    "יחידות": 0,
+    "שטח_עיקרי_מנוצל": 0,
+    "שטח_עיקרי_מותר": 0,
+    "ניצול_אחוז": 0,
+    "הכנסה_משוערת_מיליון": 0,
+    "מחיר_ליחידה_מיליון": 2.2
+  },
+  "תמהיל": [
+    { "סוג_דירה": "2 חדרים", "שטח_ממוצע": 0, "כמות_יחידות": 0, "אחוז": 0, "שטח_כולל": 0, "הערה": "" }
+  ],
+  "זכויות": {
+    "שטח_מגרש": 0, "אחוזי_בנייה": 0, "שטח_כולל_מותר": 0,
+    "שטח_עיקרי_מותר": 0, "שטח_שירות_מותר": 0,
+    "קומות_מקסימום": 0, "גובה_מקסימום": 0, "כיסוי_אחוז": 0
+  },
+  "קווי_בניין": { "קדמי": 0, "צדדי": 0, "אחורי": 0 },
+  "חנייה": { "ליחידה": 0, "סהכ": 0, "פתרון": "" },
+  "בונוסים": [
+    { "סוג": "", "תיאור": "", "תוספת": "", "תנאים": "" }
+  ],
+  "שימושים": [
+    { "שימוש": "", "סטטוס": "", "הערה": "" }
+  ],
+  "סיכונים": [
+    { "רמה": "גבוה", "כותרת": "", "תיאור": "", "סעיף": "" }
+  ],
+  "סיכום": {
+    "טקסט": "",
+    "המלצה": "",
+    "חוזקות": [],
+    "אתגרים": [],
+    "שלבים": []
+  },
+  "עקביות": { "הערה": "", "תקין": true }
+}`;
+
+    setStep(2);
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-calls': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfB64 } },
+            { type: 'text', text: prompt }
+          ]
+        }]
+      })
+    });
+
+    setStep(3);
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || `HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    const rawText = data.content.map(c => c.text || '').join('');
+    const clean = rawText.replace(/```json|```/g, '').trim();
+
+    setStep(4);
+    const analysis = JSON.parse(clean);
+    currentAnalysis = analysis;
+
+    // עדכון UI
+    updateUI(analysis, projectName, city);
+
+    setTimeout(() => overlay.classList.remove('show'), 500);
+
+  } catch (err) {
+    overlay.classList.remove('show');
+    alert('שגיאה: ' + err.message);
+    console.error(err);
+  }
+}
+
+// ── Update UI with real data ──
+function updateUI(a, projectName, city) {
+  // Topbar
+  document.querySelector('.topbar-crumb span').textContent = projectName + (city ? ' – ' + city : '');
+
+  // KPIs
+  const k = a.kpi || {};
+  const niצul = k['ניצול_אחוז'] || 0;
+  const mainUsed = k['שטח_עיקרי_מנוצל'] || 0;
+  const mainAllowed = k['שטח_עיקרי_מותר'] || 0;
+  const pct = mainAllowed > 0 ? Math.round(mainUsed / mainAllowed * 100) : niצul;
+
+  document.querySelectorAll('.kpi-value')[0].textContent = k['יחידות'] || '—';
+  document.querySelectorAll('.kpi-sub')[0].textContent = 'מתמהיל ' + (selectedMix || 'מאוזן');
+  document.querySelectorAll('.kpi-value')[1].textContent = Number(mainUsed).toLocaleString();
+  document.querySelectorAll('.kpi-sub')[1].textContent = 'מתוך ' + Number(mainAllowed).toLocaleString() + ' מותר';
+  document.querySelector('.progress-fill').style.width = pct + '%';
+  document.querySelectorAll('.kpi-value')[2].textContent = pct + '%';
+  document.querySelectorAll('.kpi-sub')[2].textContent = 'אחוזי בנייה ' + (a.זכויות?.['אחוזי_בנייה'] || '—') + '%';
+  document.querySelectorAll('.kpi-value')[3].textContent = '₪' + (k['הכנסה_משוערת_מיליון'] || '—') + 'M';
+  document.querySelectorAll('.kpi-sub')[3].textContent = 'הנחת מחיר ' + (k['מחיר_ליחידה_מיליון'] || 2.2) + 'M ליח"ד';
+
+  // Charts + תמהיל טבלה
+  const mix = a.תמהיל || [];
+  initCharts(mix);
+  buildMixTable(mix, a.עקביות);
+
+  // זכויות
+  buildRights(a.זכויות || {}, a.קווי_בניין || {}, a.חנייה || {}, a.בונוסים || [], a.שימושים || []);
+
+  // סיכונים
+  buildRisks(a.סיכונים || []);
+
+  // סיכום
+  buildSummary(a.סיכום || {});
+}
+
+// ── Build mix table ──
+function buildMixTable(mix, ekviut) {
+  const BADGES = ['badge-1','badge-2','badge-3','badge-4','badge-5'];
+  let rows = mix.map((r, i) => `
+    <tr>
+      <td><span class="badge ${BADGES[i % BADGES.length]}">${r.סוג_דירה || ''}</span></td>
+      <td>${r.שטח_ממוצע || '—'}</td>
+      <td>${r.כמות_יחידות || 0}</td>
+      <td>${r.אחוז || 0}%</td>
+      <td>${Number(r.שטח_כולל || 0).toLocaleString()}</td>
+      <td>${r.הערה || ''}</td>
+    </tr>`).join('');
+  const total = mix.reduce((s,r) => s + Number(r.כמות_יחידות||0), 0);
+  const totalArea = mix.reduce((s,r) => s + Number(r.שטח_כולל||0), 0);
+  rows += `<tr class="total-row"><td>סה"כ</td><td>—</td><td>${total}</td><td>100%</td><td>${totalArea.toLocaleString()}</td><td>—</td></tr>`;
+  document.querySelector('#tab-mix .tbl-wrap table tbody').innerHTML = rows;
+
+  // עקביות
+  const note = ekviut?.הערה || '';
+  const ok = ekviut?.תקין !== false;
+  const warnEl = document.querySelector('#tab-mix [style*="fff8e1"]');
+  if (warnEl) warnEl.querySelector('span:last-child').innerHTML = `<strong>בדיקת עקביות:</strong> ${note}`;
+}
+
+// ── Build rights ──
+function buildRights(z, q, h, bonuses, uses) {
+  // זכויות בנייה
+  const rc1 = document.querySelectorAll('.rights-card')[0];
+  rc1.querySelector('.rights-card-head').textContent = '📐 זכויות בנייה';
+  const rightsRows = [
+    ['שטח מגרש', (z.שטח_מגרש || '—') + ' מ"ר'],
+    ['אחוזי בנייה מותרים', (z.אחוזי_בנייה || '—') + '%'],
+    ['שטח כולל מותר', (z.שטח_כולל_מותר || '—') + ' מ"ר'],
+    ['שטח עיקרי מותר', (z.שטח_עיקרי_מותר || '—') + ' מ"ר'],
+    ['שטח שירות מותר', (z.שטח_שירות_מותר || '—') + ' מ"ר'],
+    ['מספר קומות מקסימלי', (z.קומות_מקסימום || '—') + ' קומות'],
+    ['גובה מקסימלי', (z.גובה_מקסימום || '—') + " מ'"],
+    ['אחוז כיסוי מגרש', (z.כיסוי_אחוז || '—') + '%'],
+  ];
+  rc1.querySelectorAll('.rights-row').forEach(el => el.remove());
+  rightsRows.forEach(([k, v]) => {
+    rc1.insertAdjacentHTML('beforeend',
+      `<div class="rights-row"><span class="key">${k}</span><span class="val">${v}</span></div>`);
+  });
+
+  // קווי בניין + חנייה
+  const rc2 = document.querySelectorAll('.rights-card')[1];
+  rc2.innerHTML = `<div class="rights-card-head">📏 קווי בניין</div>
+    <div class="rights-row"><span class="key">קו בניין קדמי</span><span class="val">${q.קדמי || '—'} מ'</span></div>
+    <div class="rights-row"><span class="key">קו בניין צדדי</span><span class="val">${q.צדדי || '—'} מ'</span></div>
+    <div class="rights-row"><span class="key">קו בניין אחורי</span><span class="val">${q.אחורי || '—'} מ'</span></div>
+    <div class="rights-card-head" style="background:var(--teal); margin-top:1px;">🅿️ חנייה</div>
+    <div class="rights-row"><span class="key">חניות למגורים</span><span class="val">${h.ליחידה || '—'} ליח"ד</span></div>
+    <div class="rights-row"><span class="key">סה"כ חניות נדרשות</span><span class="val">${h.סהכ || '—'}</span></div>
+    <div class="rights-row"><span class="key">פתרון מוצע</span><span class="val">${h.פתרון || '—'}</span></div>`;
+
+  // בונוסים
+  const BADGES = ['badge-2','badge-1','badge-3','badge-4'];
+  const bonusTbody = document.querySelector('#tab-rights .tbl-wrap:nth-child(2) table tbody');
+  if (bonusTbody) bonusTbody.innerHTML = bonuses.map((b, i) =>
+    `<tr><td><span class="badge ${BADGES[i%BADGES.length]}">${b.סוג||''}</span></td>
+     <td>${b.תיאור||''}</td><td>${b.תוספת||''}</td><td>${b.תנאים||''}</td></tr>`).join('');
+
+  // שימושים
+  const usesTbody = document.querySelector('#tab-rights .tbl-wrap:nth-child(3) table tbody');
+  if (usesTbody) usesTbody.innerHTML = uses.map(u =>
+    `<tr><td>${u.שימוש||''}</td><td>${u.סטטוס||''}</td><td>${u.הערה||''}</td></tr>`).join('');
+}
+
+// ── Build risks ──
+function buildRisks(risks) {
+  const levels = { 'גבוה': 'high', 'בינוני': 'medium', 'נמוך': 'low' };
+  const icons  = { 'גבוה': '🔴', 'בינוני': '🟡', 'נמוך': '🟢' };
+  document.querySelector('.risk-list').innerHTML = risks.map(r => `
+    <div class="risk-card ${levels[r.רמה] || 'low'}">
+      <span class="risk-icon">${icons[r.רמה] || '🟢'}</span>
+      <div class="risk-body">
+        <h4>${r.כותרת || ''}</h4>
+        <p>${r.תיאור || ''} ${r.סעיף ? '<br><small>סעיף: ' + r.סעיף + '</small>' : ''}</p>
+      </div>
+      <span class="risk-tag">${r.רמה || ''}</span>
+    </div>`).join('');
+}
+
+// ── Build summary ──
+function buildSummary(s) {
+  const blocks = document.querySelectorAll('#tab-summary .summary-block');
+  if (blocks[0]) blocks[0].querySelector('p').textContent = s.טקסט || '';
+  if (blocks[1]) blocks[1].querySelector('p').textContent = s.המלצה || '';
+
+  const strengths = document.querySelector('#tab-summary .check-list:not(.warn-list)');
+  if (strengths) strengths.innerHTML = (s.חוזקות || []).map(c => `<li>${c}</li>`).join('');
+
+  const challenges = document.querySelector('#tab-summary .warn-list');
+  if (challenges) challenges.innerHTML = (s.אתגרים || []).map(c => `<li>${c}</li>`).join('');
+
+  const stepsEl = document.querySelector('#tab-summary [style*="flex-direction:column"]');
+  const stepColors = ['var(--blue)', 'var(--blue)', 'var(--teal)', 'var(--teal)', 'var(--amber)'];
+  if (stepsEl) stepsEl.innerHTML = (s.שלבים || []).map((step, i) => `
+    <div style="display:flex; gap:12px; align-items:center;">
+      <span style="background:${stepColors[i]||'var(--blue)'};color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;">${i+1}</span>
+      <span style="font-size:0.88rem;">${step}</span>
+    </div>`).join('');
+}
+
+// ── Export Excel ──
+function simulateDownload(e) {
+  e.preventDefault();
+  if (!currentAnalysis) { alert('יש לנתח מסמך תחילה'); return; }
+
+  const wb = XLSX.utils.book_new();
+  const mix = currentAnalysis.תמהיל || [];
+  const ws1 = XLSX.utils.json_to_sheet(mix.map(r => ({
+    'סוג דירה': r.סוג_דירה, 'שטח ממוצע מ"ר': r.שטח_ממוצע,
+    'כמות יחידות': r.כמות_יחידות, 'אחוז': r.אחוז + '%',
+    'שטח כולל מ"ר': r.שטח_כולל, 'הערה': r.הערה
+  })));
+  XLSX.utils.book_append_sheet(wb, ws1, 'תמהיל דירות');
+
+  const z = currentAnalysis.זכויות || {};
+  const ws2 = XLSX.utils.json_to_sheet([
+    { 'פרמטר': 'שטח מגרש', 'ערך': z.שטח_מגרש },
+    { 'פרמטר': 'אחוזי בנייה', 'ערך': z.אחוזי_בנייה + '%' },
+    { 'פרמטר': 'שטח עיקרי מותר', 'ערך': z.שטח_עיקרי_מותר },
+    { 'פרמטר': 'קומות מקסימום', 'ערך': z.קומות_מקסימום },
+  ]);
+  XLSX.utils.book_append_sheet(wb, ws2, 'זכויות בנייה');
+
+  const risks = currentAnalysis.סיכונים || [];
+  const ws3 = XLSX.utils.json_to_sheet(risks.map(r => ({
+    'רמה': r.רמה, 'כותרת': r.כותרת, 'תיאור': r.תיאור, 'סעיף': r.סעיף
+  })));
+  XLSX.utils.book_append_sheet(wb, ws3, 'סיכוני תכנון');
+
+  const s = currentAnalysis.סיכום || {};
+  const ws4 = XLSX.utils.json_to_sheet([
+    { 'שדה': 'סיכום מנהלים', 'תוכן': s.טקסט },
+    { 'שדה': 'המלצה', 'תוכן': s.המלצה },
+  ]);
+  XLSX.utils.book_append_sheet(wb, ws4, 'סיכום מנהלים');
+
+  XLSX.writeFile(wb, 'דוח_תבע.xlsx');
+}
+</script>
+</body>
+</html>
