@@ -49,45 +49,82 @@ st.markdown("""
 
     html, body, [class*="css"] { font-family: 'Heebo', sans-serif; direction: rtl; }
 
+    /* רקע כהה לכל העמוד */
+    .stApp { background-color: #0f1117; }
+    section[data-testid="stSidebar"] { background-color: #1a1d27 !important; }
+    section[data-testid="stSidebar"] * { color: #e0e0e0 !important; }
+
     .main-header {
-        background: linear-gradient(135deg, #1A3A5C 0%, #2B7A78 100%);
+        background: linear-gradient(135deg, #1a1d27 0%, #16213e 100%);
+        border: 1px solid #2d3561;
         padding: 2rem; border-radius: 16px;
         color: white; text-align: center;
         margin-bottom: 2rem;
-        box-shadow: 0 8px 32px rgba(26,58,92,0.3);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
     }
-    .main-header h1 { font-size: 2.4rem; font-weight: 900; margin: 0; }
-    .main-header p  { font-size: 1.05rem; opacity: 0.85; margin-top: 0.5rem; }
+    .main-header h1 { font-size: 2.4rem; font-weight: 900; margin: 0; color: #f5c842; }
+    .main-header p  { font-size: 1.05rem; opacity: 0.75; margin-top: 0.5rem; color: #ccc; }
 
     .metric-card {
-        background: white; border-radius: 12px; padding: 1.2rem;
-        border: 1px solid #e0e7ef;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        background: #1a1d27; border-radius: 12px; padding: 1.4rem;
+        border: 1px solid #2d3561;
+        box-shadow: 0 2px 16px rgba(0,0,0,0.4);
         text-align: center;
     }
-    .metric-card .value { font-size: 2rem; font-weight: 700; color: #1A3A5C; }
-    .metric-card .label { font-size: 0.85rem; color: #6c757d; margin-top: 0.2rem; }
+    .metric-card .value { font-size: 2.2rem; font-weight: 700; color: #f5c842; }
+    .metric-card .label { font-size: 0.85rem; color: #888; margin-top: 0.3rem; }
 
-    .risk-high   { background: #f8d7da; border-right: 4px solid #dc3545; }
-    .risk-medium { background: #fff3cd; border-right: 4px solid #ffc107; }
-    .risk-low    { background: #d1e7dd; border-right: 4px solid #198754; }
+    /* טבלאות */
+    div[data-testid="stDataFrame"] { direction: rtl; }
+    div[data-testid="stDataFrame"] * { background-color: #1a1d27 !important; color: #e0e0e0 !important; }
 
+    /* טאבים */
+    .stTabs [data-baseweb="tab-list"] { background-color: #1a1d27; border-radius: 8px; }
+    .stTabs [data-baseweb="tab"] { font-family: 'Heebo', sans-serif; font-weight: 600; color: #aaa; }
+    .stTabs [aria-selected="true"] { color: #f5c842 !important; }
+
+    /* כפתורים */
     .stButton > button {
-        background: linear-gradient(135deg, #1A3A5C, #2B7A78);
+        background: linear-gradient(135deg, #2d3561, #1a5276);
         color: white; border: none; border-radius: 8px;
         padding: 0.6rem 2rem; font-weight: 600;
         font-family: 'Heebo', sans-serif;
         transition: all 0.2s;
     }
-    .stButton > button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(26,58,92,0.4); }
+    .stButton > button:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(245,200,66,0.3); }
 
+    /* כרטיס מידע */
     .info-box {
-        background: #EBF4FF; border-right: 4px solid #1A3A5C;
+        background: #1a1d27; border-right: 4px solid #f5c842;
         padding: 1rem; border-radius: 8px; margin: 0.5rem 0;
+        color: #ccc;
     }
 
-    div[data-testid="stDataFrame"] { direction: rtl; }
-    .stTabs [data-baseweb="tab"] { font-family: 'Heebo', sans-serif; font-weight: 600; }
+    /* סיכונים */
+    .risk-high   { background: #2d1a1a; border-right: 4px solid #dc3545; color: #f5c6cb; }
+    .risk-medium { background: #2d2a1a; border-right: 4px solid #ffc107; color: #fff3cd; }
+    .risk-low    { background: #1a2d1a; border-right: 4px solid #198754; color: #c3e6cb; }
+
+    /* טקסט כללי */
+    .stMarkdown, p, label, .stText { color: #e0e0e0 !important; }
+    h1, h2, h3, h4 { color: #f5c842 !important; }
+
+    /* שדות קלט */
+    .stTextInput input, .stSelectbox select, .stNumberInput input {
+        background-color: #1a1d27 !important;
+        color: #e0e0e0 !important;
+        border: 1px solid #2d3561 !important;
+    }
+
+    /* הפרדה */
+    hr { border-color: #2d3561; }
+
+    /* העלאת קובץ */
+    [data-testid="stFileUploader"] {
+        background: #1a1d27;
+        border: 2px dashed #2d3561;
+        border-radius: 12px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
